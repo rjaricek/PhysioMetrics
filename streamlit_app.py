@@ -1,7 +1,6 @@
 import streamlit as st
 import time
 import pandas as pd
-import os
 
 # --- LOGIKA VÝPOČTŮ ---
 def vypocitej_bmr(vaha, vyska, vek, pohlavi):
@@ -30,7 +29,8 @@ bmi = vaha / ((vyska_cm / 100) ** 2) if vyska_cm > 0 else 0
 bmr = vypocitej_bmr(vaha, vyska_cm, vek, pohlavi)
 
 # --- HLAVNÍ STRUKTURA (TABY) ---
-tab1, tab2, tab3 = st.tabs(["📊 Analýza & Výpočty", "📚 Odborná metodika", "📜 Deník & Historie"])
+# Odstraněn Tab 3 (Deník)
+tab1, tab2 = st.tabs(["📊 Analýza & Výpočty", "📚 Odborná metodika"])
 
 # --- TAB 1: ANALÝZA & VÝPOČTY ---
 with tab1:
@@ -81,31 +81,40 @@ with tab1:
 
     st.divider()
 
+    # --- ESTETICKY UPRAVENÝ VERDIKT ---
     st.subheader("🎯 Interpretace dat")
     res_acwr, res_trend = st.columns(2)
-    ratio = 0
+    
     with res_acwr:
+        st.write("**Aktuální stav ACWR**")
         if mesicni_prumer > 0:
             ratio = total_tyden / mesicni_prumer
-            st.metric("ACWR Index", f"{ratio:.2f}")
+            st.metric("Index poměru zátěže", f"{ratio:.2f}")
             if 0.8 <= ratio <= 1.3: st.success("🟢 SWEET SPOT")
             elif ratio > 1.5: st.error("🔴 DANGER ZONE")
             else: st.warning("🔵 DETRAINING")
         else:
-            st.write("Pro výpočet ACWR zadejte data.")
+            st.info("Zadejte data pro výpočet.")
 
     with res_trend:
+        st.write("**Dlouhodobý trend**")
         if mesicni_prumer > 0:
             posledni_dva = (t3 + total_tyden) / 2
             prvni_dva = (t1 + t2) / 2
+            st.metric("Průměrná zátěž", f"{mesicni_prumer:.0f} AU")
             if prvni_dva > 0:
                 diff = (posledni_dva - prvni_dva) / prvni_dva
                 if abs(diff) < 0.15: st.info("🔄 KONZISTENTNÍ")
                 elif diff > 0: st.success("📈 PROGRESIVNÍ")
                 else: st.warning("📉 POLEVUJÍCÍ")
+            else:
+                st.caption("Pro analýzu trendu zadejte data za týden 1 a 2.")
+        else:
+            st.info("Zadejte data pro analýzu.")
 
     st.divider()
 
+    # --- NUTRIČNÍ STRATEGIE (Bez ukládání) ---
     st.subheader("🍏 Nutriční strategie")
     if total_tyden > 0 and bmr > 0:
         vydej = (total_tyden / 7) * (vaha * 0.0012)
@@ -113,17 +122,10 @@ with tab1:
         cil = st.radio("Cíl:", ["Redukce", "Udržení", "Svalový růst"], horizontal=True)
         prijem = tdee - 500 if cil == "Redukce" else (tdee if cil == "Udržení" else tdee + 300)
         st.metric("Doporučený denní příjem", f"{prijem:.0f} kcal")
-        
-        if st.button("💾 Uložit do deníku"):
-            try:
-                with open("denik.txt", "a", encoding="utf-8") as f:
-                    f.write(f"{time.strftime('%d.%m.%Y')};{jmeno};{ratio:.2f};{prijem:.0f}\n")
-                st.success("Data uložena.")
-            except: st.error("Chyba zápisu.")
     else:
         st.caption("Doplňte profil a zátěž pro výpočet kalorií.")
 
-# --- TAB 2: ODBORNÁ METODIKA ---
+# --- TAB 2: ODBORNÁ METODIKA (Zůstává beze změny dle požadavku) ---
 with tab2:
     st.header("Metodický rámec PhysioMetrics")
     
@@ -132,7 +134,6 @@ with tab2:
         **RPE (Rate of Perceived Exertion)** je validovaný nástroj pro subjektivní hodnocení intenzity zatížení. 
         Slouží k kvantifikaci vnitřního zatížení organismu, které může být u každého jedince odlišné i při stejném vnějším stimulu.
         """)
-        
         st.markdown("""
         | Stupeň | Intenzita | Fyziologické indikátory |
         | :--- | :--- | :--- |
@@ -147,15 +148,14 @@ with tab2:
         **ACWR (Acute-Chronic Workload Ratio)** sleduje vztah mezi akutní zátěží (únava) a chronickou zátěží (fitness). 
         Tento poměr je klíčovým prediktorem rizika vzniku nekontaktních zranění.
         """)
-        
         st.markdown("""
         ### 🔵 Detraining (< 0.8)
         Stav, kdy je aktuální podnět nižší, než na co je tkáň adaptována. 
-        * **Následek:** Dochází k postupné atrofii svalové hmoty, snižování hustoty kostí a desenzitizaci nervosvalových drah. Dlouhodobý detraining zvyšuje riziko zranění při náhlém návratu k původní zátěži.
+        * **Následek:** Dochází k postupné atrofii svalové hmoty, snižování hustoty kostí a desenzitizaci nervosvalových drah.
 
         ### 🟢 Sweet Spot (0.8 - 1.3)
         Zóna optimální adaptace. 
-        * **Následek:** Organismus je schopen efektivně regenerovat, dochází k superkompenzaci a postupnému zvyšování výkonnosti (fitness) bez excesivního rizika přetížení.
+        * **Následek:** Organismus je schopen efektivně regenerovat, dochází k superkompenzaci a postupnému zvyšování výkonnosti.
 
         ### 🔴 Danger Zone (> 1.5)
         Kritická zóna maladaptace. 
@@ -165,28 +165,6 @@ with tab2:
 
     with st.expander("🩺 Metabolické metriky (BMI a BMR)", expanded=True):
         st.write("### BMI (Body Mass Index)")
-        st.write("""
-        Kvantitativní ukazatel poměru tělesné hmotnosti k výšce. Slouží k rychlému screeningu nutričního stavu populace. 
-        Ačkoliv nereflektuje složení těla (svaly vs. tuk), je užitečným indikátorem pro stanovení základních rizik spojených s nadváhou či podváhou.
-        """)
-        
+        st.write("Kvantitativní ukazatel poměru tělesné hmotnosti k výšce.")
         st.write("### BMR (Basal Metabolic Rate)")
-        st.write("""
-        Bazální metabolismus představuje množství energie (v kcal) potřebné pro udržení základních vitálních funkcí (krevní oběh, dýchání, termoregulace) v naprostém klidovém stavu. 
-        Je základním kamenem pro výpočet celkového energetického výdeje (TDEE).
-        """)
-
-# --- TAB 3: HISTORIE ---
-with tab3:
-    st.header("📜 Historie měření")
-    if os.path.exists("denik.txt"):
-        with open("denik.txt", "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        if lines and jmeno:
-            user_lines = [l for l in lines if f";{jmeno};" in l]
-            for l in user_lines:
-                p = l.split(";")
-                st.info(f"📅 **{p[0]}** | ACWR: **{p[2]}** | Nutrice: **{p[3].strip()} kcal**")
-        elif not jmeno: st.warning("Zadejte jméno pro zobrazení historie.")
-        else: st.info("Žádné záznamy.")
-    else: st.info("Deník je zatím prázdný.")
+        st.write("Bazální metabolismus představuje množství energie potřebné pro udržení základních vitálních funkcí.")
