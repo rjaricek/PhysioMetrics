@@ -15,34 +15,36 @@ st.set_page_config(page_title="PhysioMetrics", page_icon="📊", layout="wide")
 
 st.title("🚀 PHYSIOMETRICS")
 
-# --- SIDEBAR (Osobní údaje) ---
-with st.sidebar:
-    st.header("👤 Osobní profil")
-    jmeno = st.text_input("Jméno uživatele", "")
-    pohlavi = st.selectbox("Pohlaví", ["Muž", "Žena"])
-    vaha = st.number_input("Váha (kg)", value=0.0, min_value=0.0)
-    vyska_cm = st.number_input("Výška (cm)", value=0.0, min_value=0.0)
-    vek = st.number_input("Věk", value=0, min_value=0)
+# --- OSOBNÍ PROFIL (Teď přímo v hlavní části pro lepší mobilní zobrazení) ---
+with st.expander("👤 OSOBNÍ PROFIL (Klikněte pro vyplnění údajů)", expanded=True):
+    col_u1, col_u2, col_u3 = st.columns(3)
+    with col_u1:
+        jmeno = st.text_input("Jméno uživatele", "")
+        pohlavi = st.selectbox("Pohlaví", ["Muž", "Žena"])
+    with col_u2:
+        vaha = st.number_input("Váha (kg)", value=0.0, min_value=0.0)
+        vyska_cm = st.number_input("Výška (cm)", value=0.0, min_value=0.0)
+    with col_u3:
+        vek = st.number_input("Věk", value=0, min_value=0)
 
 # Výpočty základních metrik
 bmi = vaha / ((vyska_cm / 100) ** 2) if vyska_cm > 0 else 0
 bmr = vypocitej_bmr(vaha, vyska_cm, vek, pohlavi)
 
 # --- HLAVNÍ STRUKTURA (TABY) ---
-# Odstraněn Tab 3 (Deník)
 tab1, tab2 = st.tabs(["📊 Analýza & Výpočty", "📚 Odborná metodika"])
 
 # --- TAB 1: ANALÝZA & VÝPOČTY ---
 with tab1:
     if not jmeno:
-        st.info("Zadejte prosím své jméno v levém panelu pro zahájení analýzy.")
+        st.info("Vyplňte prosím svůj Osobní profil výše pro zahájení analýzy.")
     
     st.header(f"Analýza: {jmeno if jmeno else '---'}")
     
     col_bmi, col_bmr = st.columns(2)
     with col_bmi:
         st.metric("Body Mass Index (BMI)", f"{bmi:.1f}")
-        if bmi == 0: st.caption("Zadejte údaje vlevo.")
+        if bmi == 0: st.caption("Zadejte údaje v profilu.")
         elif bmi < 18.5: st.markdown("Kategorie: :blue[**Podváha**]")
         elif bmi < 25: st.markdown("Kategorie: :green[**Normální váha**]")
         elif bmi < 30: st.markdown("Kategorie: :orange[**Nadváha**]")
@@ -114,7 +116,7 @@ with tab1:
 
     st.divider()
 
-    # --- NUTRIČNÍ STRATEGIE (Bez ukládání) ---
+    # --- NUTRIČNÍ STRATEGIE ---
     st.subheader("🍏 Nutriční strategie")
     if total_tyden > 0 and bmr > 0:
         vydej = (total_tyden / 7) * (vaha * 0.0012)
@@ -125,7 +127,7 @@ with tab1:
     else:
         st.caption("Doplňte profil a zátěž pro výpočet kalorií.")
 
-# --- TAB 2: ODBORNÁ METODIKA (Zůstává beze změny dle požadavku) ---
+# --- TAB 2: ODBORNÁ METODIKA ---
 with tab2:
     st.header("Metodický rámec PhysioMetrics")
     
@@ -151,16 +153,14 @@ with tab2:
         st.markdown("""
         ### 🔵 Detraining (< 0.8)
         Stav, kdy je aktuální podnět nižší, než na co je tkáň adaptována. 
-        * **Následek:** Dochází k postupné atrofii svalové hmoty, snižování hustoty kostí a desenzitizaci nervosvalových drah.
 
         ### 🟢 Sweet Spot (0.8 - 1.3)
         Zóna optimální adaptace. 
-        * **Následek:** Organismus je schopen efektivně regenerovat, dochází k superkompenzaci a postupnému zvyšování výkonnosti.
 
         ### 🔴 Danger Zone (> 1.5)
         Kritická zóna maladaptace. 
         * **Následek:** Akutní zátěž výrazně převyšuje chronickou kapacitu tkání. Dochází k mikrotraumatům, která tělo nestíhá opravovat. 
-        * **Klinické riziko:** Výrazně se zvyšuje náchylnost k svalovým trhlinám, únavovým zlomeninám a tendinopatiím. Chronické setrvání v této zóně vede k syndromu přetrénování a selhání imunitního systému.
+        * **Klinické riziko:** Výrazně se zvyšuje náchylnost k svalovým trhlinám, únavovým zlomeninám a tendinopatiím. 
         """)
 
     with st.expander("🩺 Metabolické metriky (BMI a BMR)", expanded=True):
